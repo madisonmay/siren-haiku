@@ -12,7 +12,7 @@ import imageio
 
 class Config:
     w0 = 30.
-    lr = 1e-3
+    lr = 1e-4
     n_steps = 10000
     hidden_size = 512
     n_layers = 5
