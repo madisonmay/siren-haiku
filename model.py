@@ -1,5 +1,7 @@
 import os
 
+import cv2
+from tqdm import trange
 import numpy as np
 import jax
 import jax.numpy as jnp
@@ -7,7 +9,6 @@ from jax.experimental import optix
 import haiku as hk
 from haiku.initializers import RandomUniform
 from matplotlib import pyplot as plt
-import imageio
 
 
 class Config:
@@ -35,7 +36,7 @@ def load_image(path):
     """
     Load img and convert to 0-1 normalized RGB
     """
-    img = imageio.imread(path).astype(np.float32)
+    img = cv2.imread(path).astype(np.float32)
     img /= 255.
     if img.shape[-1] == 4:
         img = rgba_to_rgb(img)
@@ -135,7 +136,9 @@ def main(image_filepath, upsample=False, upsample_ratio=2):
         new_params = optix.apply_updates(params, updates)
         return new_params, opt_state, batch_loss
 
-    for i in range(Config.n_steps):
+    tqdm_iter = trange(Config.n_steps)
+
+    for i in tqdm_iter:
         params, opt_state, batch_loss = update(
             params, opt_state, flat_coords, flat_img
         )
@@ -148,7 +151,7 @@ def main(image_filepath, upsample=False, upsample_ratio=2):
                 np.reshape(flat_recon, (img.shape[0], img.shape[1], 3)),
                 a_min=0, a_max=1
             ) 
-            plt.imsave(f'results/{basename}-{i}.png', recon)
+            plt.imsave(f'results/{basename}-{i:04d}.png', recon)
 
             if upsample:
                 upsampled_recon = reconstruct(
@@ -158,10 +161,8 @@ def main(image_filepath, upsample=False, upsample_ratio=2):
                     np.reshape(upsampled_recon, (upsampled_x, upsampled_y, 3)),
                     a_min=0, a_max=1
                 ) 
-                plt.imsave(f'upsampled_results/{basename}-{i}.png', recon)
-
-
-        print(f"Loss at step {i}: {batch_loss}")
+                plt.imsave(f'upsampled_results/{basename}-{i:04d}.png', recon)
+        tqdm_iter.set_description(f"Step: {i} Loss: {batch_loss:0.4f}")
 
 
 if __name__ == '__main__':
